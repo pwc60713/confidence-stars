@@ -181,14 +181,19 @@
   <textarea id="detail-input" placeholder="寫下這件事的故事、感受，或是為什麼值得記住（可以不填）"></textarea>
   <button class="btn" id="confirm-btn">確認加入 ✦</button>
   <div id="count"></div>
+  <div class="row" style="margin-top:4px;">
+    <button class="btn" id="export-btn">匯出備份</button>
+    <label class="btn" for="import-input" style="cursor:pointer;">匯入備份</label>
+    <input type="file" id="import-input" accept=".json" style="display:none;" />
+  </div>
 </div>
-<p class="tip">點擊查看故事・長按編輯・拖曳移動</p>
+<p class="tip">點擊查看故事・長按編輯・拖曳移動・記得換手機前匯出備份</p>
 
 <script>
 const STORAGE_KEY = 'pipi_stars_v1';
 
 const defaultStars = [
-  { id: 1, title: "整理師第2個案子", desc: "第一次接案，主整說已經很好了，客戶滿意還請喝飲料，用合理標準算是100分。", date: "2026-04-28", size: 16 },
+  { id: 1, title: "整理師第一個案子", desc: "第一次接案，主整說已經很好了，客戶滿意還請喝飲料，用合理標準算是100分。", date: "2026-04-28", size: 16 },
   { id: 2, title: "果斷婉拒不合適的工作", desc: "清潔公司和倉管都拒掉了，因為知道自己要什麼，沒有將就。這很不容易。", date: "2026-04-27", size: 15 },
   { id: 3, title: "搶到停車位", desc: "月經第二天，情緒不好，還是搶贏了，今日MVP。", date: "2026-04-28", size: 13 },
   { id: 4, title: "拒絕催婚", desc: "這次沒有被家人推著走，自己判斷自己決定。藍風暴從被動到主動。", date: "2026-01-01", size: 16 },
@@ -430,6 +435,44 @@ confirmBtn.onclick = () => {
   makeWordEl(newStar, wordEls.length);
   updateCount();
   pendingTitle = '';
+};
+
+
+// Export
+document.getElementById('export-btn').onclick = () => {
+  const data = JSON.stringify(stars, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'confidence_stars_backup_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// Import
+document.getElementById('import-input').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (!Array.isArray(imported)) throw new Error();
+      if (!confirm('匯入後會覆蓋目前的 ' + stars.length + ' 顆星星，換成備份的 ' + imported.length + ' 顆，確定嗎？')) return;
+      stars = imported;
+      nextId = stars.reduce((m, s) => Math.max(m, s.id || 0), 0) + 1;
+      saveStars();
+      wordEls.forEach(el => el.remove());
+      wordEls.length = 0;
+      stars.forEach((s, i) => makeWordEl(s, i));
+      updateCount();
+    } catch(err) {
+      alert('檔案格式不對，請選擇正確的備份檔案');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 };
 
 drawStarBg();
