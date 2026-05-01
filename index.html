@@ -188,11 +188,11 @@
 const STORAGE_KEY = 'pipi_stars_v1';
 
 const defaultStars = [
-  { id: 1, title: "整理師第一個案子", desc: "第一次接案，主整說已經很好了，客戶滿意還請喝飲料，用合理標準算是100分。", date: "2026-04-28", size: 24 },
-  { id: 2, title: "果斷婉拒不合適的工作", desc: "清潔公司和倉管都拒掉了，因為知道自己要什麼，沒有將就。這很不容易。", date: "2026-04-27", size: 17 },
+  { id: 1, title: "整理師第一個案子", desc: "第一次接案，主整說已經很好了，客戶滿意還請喝飲料，用合理標準算是100分。", date: "2026-04-28", size: 16 },
+  { id: 2, title: "果斷婉拒不合適的工作", desc: "清潔公司和倉管都拒掉了，因為知道自己要什麼，沒有將就。這很不容易。", date: "2026-04-27", size: 15 },
   { id: 3, title: "搶到停車位", desc: "月經第二天，情緒不好，還是搶贏了，今日MVP。", date: "2026-04-28", size: 13 },
-  { id: 4, title: "拒絕催婚", desc: "這次沒有被家人推著走，自己判斷自己決定。藍風暴從被動到主動。", date: "2026-01-01", size: 18 },
-  { id: 5, title: "完成整理師課程", desc: "有上課、有學習、有系統有流程，是真的有能力的整理師，不是從零開始。", date: "2025-01-01", size: 15 },
+  { id: 4, title: "拒絕催婚", desc: "這次沒有被家人推著走，自己判斷自己決定。藍風暴從被動到主動。", date: "2026-01-01", size: 16 },
+  { id: 5, title: "完成整理師課程", desc: "有上課、有學習、有系統有流程，是真的有能力的整理師，不是從零開始。", date: "2025-01-01", size: 14 },
   { id: 6, title: "一個人在高雄生活快十年", desc: "17歲來到高雄，住最久的地方是自己選的。高雄是自己的家。", date: "2017-09-01", size: 14 },
 ];
 
@@ -423,7 +423,7 @@ confirmBtn.onclick = () => {
   detailInput.style.display = 'none';
   confirmBtn.style.display = 'none';
   dateRow.style.display = 'none';
-  const sz = 13 + Math.floor(Math.random() * 9);
+  const sz = 13 + Math.floor(Math.random() * 6);
   const newStar = { id: nextId++, title: pendingTitle, desc, date, size: sz };
   stars.push(newStar);
   saveStars();
