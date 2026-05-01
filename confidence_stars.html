@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>皮皮的自信星空</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #06060f;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.1em;
+  }
+  #universe {
+    width: 100%;
+    max-width: 800px;
+    height: 520px;
+    background: #0a0a1a;
+    border-radius: 16px;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+  }
+  #universe:active { cursor: grabbing; }
+  canvas#star-bg { position: absolute; inset: 0; pointer-events: none; }
+  .star-word {
+    position: absolute;
+    color: rgba(255,255,255,0.82);
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .star-word:hover { color: #fff; }
+  .overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    border-radius: 16px;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+  }
+  .overlay.open { display: flex; }
+  .panel {
+    background: #12122a;
+    border: 0.5px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 300px;
+    width: 90%;
+  }
+  .panel h3 { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
+  .panel .date-label { font-size: 12px; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
+  .panel p { font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.7; }
+  .panel-actions { display: flex; gap: 8px; margin-top: 1.2rem; }
+  .btn {
+    background: transparent;
+    border: 0.5px solid rgba(255,255,255,0.25);
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .btn:hover { background: rgba(255,255,255,0.06); }
+  .btn.danger { border-color: rgba(255,80,80,0.4); color: rgba(255,120,120,0.9); }
+  .btn.danger:hover { background: rgba(255,60,60,0.08); }
+  .edit-panel input[type="text"],
+  .edit-panel textarea,
+  .edit-panel input[type="date"] {
+    width: 100%;
+    background: #1a1a35;
+    border: 0.5px solid rgba(255,255,255,0.18);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    margin-bottom: 8px;
+  }
+  .edit-panel input[type="date"] { color-scheme: dark; }
+  .edit-panel textarea { resize: none; height: 80px; }
+  .edit-panel label { font-size: 12px; color: rgba(255,255,255,0.35); display: block; margin-bottom: 4px; }
+  .controls {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row { display: flex; gap: 8px; }
+  .controls input[type="text"],
+  .controls input[type="date"],
+  .controls textarea {
+    background: #12122a;
+    border: 0.5px solid rgba(255,255,255,0.18);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+  }
+  .controls input[type="text"] { flex: 1; }
+  .controls input[type="date"] { color-scheme: dark; }
+  .controls input::placeholder, .controls textarea::placeholder { color: rgba(255,255,255,0.25); }
+  .controls textarea { width: 100%; resize: none; height: 70px; display: none; }
+  .controls .date-row { display: none; gap: 8px; align-items: center; }
+  .controls .date-row label { font-size: 13px; color: rgba(255,255,255,0.4); white-space: nowrap; }
+  .controls .date-row input { flex: 1; }
+  #confirm-btn { display: none; align-self: flex-start; }
+  .tip { font-size: 12px; color: rgba(255,255,255,0.2); text-align: center; margin-top: 6px; }
+  #count { font-size: 13px; color: rgba(255,255,255,0.28); text-align: right; }
+</style>
+</head>
+<body>
+<h1>✦ 皮皮的自信星空 ✦</h1>
+<div id="universe">
+  <canvas id="star-bg"></canvas>
+
+  <!-- View modal -->
+  <div class="overlay" id="view-modal">
+    <div class="panel">
+      <h3 id="vm-title"></h3>
+      <div class="date-label" id="vm-date"></div>
+      <p id="vm-desc"></p>
+      <div class="panel-actions">
+        <button class="btn" id="vm-close">關閉</button>
+        <button class="btn" id="vm-edit">編輯</button>
+        <button class="btn danger" id="vm-delete">刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit modal -->
+  <div class="overlay" id="edit-modal">
+    <div class="panel edit-panel">
+      <label>標題</label>
+      <input type="text" id="em-title" />
+      <label>日期</label>
+      <input type="date" id="em-date" />
+      <label>故事</label>
+      <textarea id="em-desc"></textarea>
+      <div class="panel-actions">
+        <button class="btn" id="em-save">儲存</button>
+        <button class="btn" id="em-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="row">
+    <input type="text" id="add-title" placeholder="加入新的成功事蹟..." />
+    <button class="btn" id="add-btn">加入星空</button>
+  </div>
+  <div class="date-row" id="date-row">
+    <label>日期</label>
+    <input type="date" id="add-date" />
+  </div>
+  <textarea id="detail-input" placeholder="寫下這件事的故事、感受，或是為什麼值得記住（可以不填）"></textarea>
+  <button class="btn" id="confirm-btn">確認加入 ✦</button>
+  <div id="count"></div>
+</div>
+<p class="tip">點擊查看故事・長按編輯・拖曳移動</p>
+
+<script>
+const STORAGE_KEY = 'pipi_stars_v1';
+
+const defaultStars = [
+  { id: 1, title: "整理師第一個案子", desc: "第一次接案，主整說已經很好了，客戶滿意還請喝飲料，用合理標準算是100分。", date: "2026-04-28", size: 24 },
+  { id: 2, title: "果斷婉拒不合適的工作", desc: "清潔公司和倉管都拒掉了，因為知道自己要什麼，沒有將就。這很不容易。", date: "2026-04-27", size: 17 },
+  { id: 3, title: "搶到停車位", desc: "月經第二天，情緒不好，還是搶贏了，今日MVP。", date: "2026-04-28", size: 13 },
+  { id: 4, title: "拒絕催婚", desc: "這次沒有被家人推著走，自己判斷自己決定。藍風暴從被動到主動。", date: "2026-01-01", size: 18 },
+  { id: 5, title: "完成整理師課程", desc: "有上課、有學習、有系統有流程，是真的有能力的整理師，不是從零開始。", date: "2025-01-01", size: 15 },
+  { id: 6, title: "一個人在高雄生活快十年", desc: "17歲來到高雄，住最久的地方是自己選的。高雄是自己的家。", date: "2017-09-01", size: 14 },
+];
+
+function loadStars() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return defaultStars.map(s => ({...s}));
+}
+function saveStars() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stars)); } catch(e) {}
+}
+
+let stars = loadStars();
+let nextId = stars.reduce((m, s) => Math.max(m, s.id || 0), 0) + 1;
+let activeStarIdx = -1;
+
+const universe = document.getElementById('universe');
+const canvas = document.getElementById('star-bg');
+const ctx = canvas.getContext('2d');
+const countEl = document.getElementById('count');
+
+// View modal
+const viewModal = document.getElementById('view-modal');
+const vmTitle = document.getElementById('vm-title');
+const vmDate = document.getElementById('vm-date');
+const vmDesc = document.getElementById('vm-desc');
+document.getElementById('vm-close').onclick = () => viewModal.classList.remove('open');
+document.getElementById('vm-delete').onclick = () => {
+  if (activeStarIdx < 0) return;
+  viewModal.classList.remove('open');
+  stars.splice(activeStarIdx, 1);
+  saveStars();
+  wordEls[activeStarIdx].remove();
+  wordEls.splice(activeStarIdx, 1);
+  updateCount();
+  activeStarIdx = -1;
+};
+document.getElementById('vm-edit').onclick = () => {
+  if (activeStarIdx < 0) return;
+  const s = stars[activeStarIdx];
+  document.getElementById('em-title').value = s.title;
+  document.getElementById('em-date').value = s.date || '';
+  document.getElementById('em-desc').value = s.desc || '';
+  viewModal.classList.remove('open');
+  editModal.classList.add('open');
+};
+
+// Edit modal
+const editModal = document.getElementById('edit-modal');
+document.getElementById('em-cancel').onclick = () => editModal.classList.remove('open');
+document.getElementById('em-save').onclick = () => {
+  if (activeStarIdx < 0) return;
+  const t = document.getElementById('em-title').value.trim();
+  if (!t) return;
+  stars[activeStarIdx].title = t;
+  stars[activeStarIdx].date = document.getElementById('em-date').value;
+  stars[activeStarIdx].desc = document.getElementById('em-desc').value.trim();
+  saveStars();
+  wordEls[activeStarIdx].textContent = t;
+  editModal.classList.remove('open');
+};
+
+function drawStarBg() {
+  canvas.width = universe.offsetWidth;
+  canvas.height = universe.offsetHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < 160; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const r = Math.random() * 1.1 + 0.2;
+    const a = Math.random() * 0.4 + 0.05;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fill();
+  }
+}
+
+const wordEls = [];
+
+function placeEl(el) {
+  const uw = universe.offsetWidth || 700;
+  const uh = universe.offsetHeight || 500;
+  el.style.left = (Math.random() * (uw - 150) + 10) + 'px';
+  el.style.top = (Math.random() * (uh - 40) + 10) + 'px';
+}
+
+function animateFloat(el, idx) {
+  const speed = 0.00022 + Math.random() * 0.00018;
+  const amp = 3 + Math.random() * 7;
+  const offset = Math.random() * Math.PI * 2;
+  let t = 0;
+  function tick() {
+    t += 16;
+    el.style.transform = `translateY(${Math.sin(t * speed + offset) * amp}px)`;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function showView(idx) {
+  activeStarIdx = idx;
+  const s = stars[idx];
+  vmTitle.textContent = s.title;
+  vmDate.textContent = s.date ? s.date.replace(/-/g, '/') : '';
+  vmDesc.textContent = s.desc || '這顆星星還沒有故事，但它是真實存在的。';
+  viewModal.classList.add('open');
+}
+
+function makeWordEl(star, idx) {
+  const el = document.createElement('div');
+  el.className = 'star-word';
+  el.textContent = star.title;
+  el.style.fontSize = (star.size || 14) + 'px';
+  el.style.opacity = 0.55 + Math.min((star.size - 12) / 25, 0.4);
+  universe.appendChild(el);
+  setTimeout(() => placeEl(el), 10);
+  animateFloat(el, idx);
+
+  let isDragging = false, ox = 0, oy = 0, startX = 0, startY = 0;
+  let longPressTimer = null;
+
+  // Mouse
+  el.addEventListener('mousedown', e => {
+    isDragging = false;
+    startX = e.clientX; startY = e.clientY;
+    ox = e.clientX - el.offsetLeft;
+    oy = e.clientY - el.offsetTop;
+    longPressTimer = setTimeout(() => {
+      isDragging = true;
+      activeStarIdx = wordEls.indexOf(el);
+      const s = stars[activeStarIdx];
+      document.getElementById('em-title').value = s.title;
+      document.getElementById('em-date').value = s.date || '';
+      document.getElementById('em-desc').value = s.desc || '';
+      editModal.classList.add('open');
+    }, 600);
+    const move = ev => {
+      if (Math.abs(ev.clientX - startX) > 4 || Math.abs(ev.clientY - startY) > 4) {
+        isDragging = true;
+        clearTimeout(longPressTimer);
+      }
+      el.style.left = (ev.clientX - ox) + 'px';
+      el.style.top = (ev.clientY - oy) + 'px';
+    };
+    const up = () => {
+      clearTimeout(longPressTimer);
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      if (!isDragging) showView(wordEls.indexOf(el));
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.preventDefault();
+  });
+
+  // Touch
+  el.addEventListener('touchstart', e => {
+    isDragging = false;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    ox = t.clientX - el.offsetLeft; oy = t.clientY - el.offsetTop;
+    longPressTimer = setTimeout(() => {
+      isDragging = true;
+      activeStarIdx = wordEls.indexOf(el);
+      const s = stars[activeStarIdx];
+      document.getElementById('em-title').value = s.title;
+      document.getElementById('em-date').value = s.date || '';
+      document.getElementById('em-desc').value = s.desc || '';
+      editModal.classList.add('open');
+    }, 600);
+    const move = ev => {
+      const tt = ev.touches[0];
+      if (Math.abs(tt.clientX - startX) > 4) { isDragging = true; clearTimeout(longPressTimer); }
+      el.style.left = (tt.clientX - ox) + 'px';
+      el.style.top = (tt.clientY - oy) + 'px';
+    };
+    const up = () => {
+      clearTimeout(longPressTimer);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', up);
+      if (!isDragging) showView(wordEls.indexOf(el));
+    };
+    document.addEventListener('touchmove', move, { passive: true });
+    document.addEventListener('touchend', up);
+  });
+
+  wordEls.push(el);
+}
+
+function updateCount() {
+  countEl.textContent = `目前共 ${stars.length} 顆星星`;
+}
+
+stars.forEach((s, i) => makeWordEl(s, i));
+updateCount();
+
+// Add new star
+const addTitleEl = document.getElementById('add-title');
+const addBtn = document.getElementById('add-btn');
+const detailInput = document.getElementById('detail-input');
+const confirmBtn = document.getElementById('confirm-btn');
+const dateRow = document.getElementById('date-row');
+const addDateEl = document.getElementById('add-date');
+let pendingTitle = '';
+
+addBtn.onclick = () => {
+  const t = addTitleEl.value.trim();
+  if (!t) return;
+  pendingTitle = t;
+  addTitleEl.value = '';
+  detailInput.style.display = 'block';
+  confirmBtn.style.display = 'inline-block';
+  dateRow.style.display = 'flex';
+  const today = new Date();
+  addDateEl.value = today.toISOString().split('T')[0];
+  detailInput.focus();
+};
+
+addTitleEl.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click(); });
+
+confirmBtn.onclick = () => {
+  const desc = detailInput.value.trim();
+  const date = addDateEl.value;
+  detailInput.value = '';
+  detailInput.style.display = 'none';
+  confirmBtn.style.display = 'none';
+  dateRow.style.display = 'none';
+  const sz = 13 + Math.floor(Math.random() * 9);
+  const newStar = { id: nextId++, title: pendingTitle, desc, date, size: sz };
+  stars.push(newStar);
+  saveStars();
+  makeWordEl(newStar, wordEls.length);
+  updateCount();
+  pendingTitle = '';
+};
+
+drawStarBg();
+window.addEventListener('resize', drawStarBg);
+</script>
+</body>
+</html>
